@@ -12,10 +12,14 @@ import (
 )
 
 type period_budget struct {
-	ID	string	`json:"id"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
 	StartDate time.Time `json:"start_date"`
-	EndDate time.Time `json:"end_date"`
+	EndDate   time.Time `json:"end_date"`
+}
 
+type BudgetResponse struct {
+	Budgets []period_budget `json:"budgets"`
 }
 
 func getPeriodBudgets(c *gin.Context) {
@@ -42,7 +46,7 @@ func getPeriodBudgets(c *gin.Context) {
 
 	for rows.Next() {
 		var pb period_budget
-		if err := rows.Scan(&pb.ID, &pb.StartDate, &pb.EndDate); err != nil {
+		if err := rows.Scan(&pb.ID, &pb.Name, &pb.StartDate, &pb.EndDate); err != nil {
 			panic(err)
 		}
 		period_budgets = append(period_budgets, pb)
@@ -53,7 +57,9 @@ func getPeriodBudgets(c *gin.Context) {
 		panic(err)
 	}
 
-	c.IndentedJSON(http.StatusOK, period_budgets)
+	var budgetResponse BudgetResponse = BudgetResponse{ Budgets: period_budgets }
+
+	c.IndentedJSON(http.StatusOK, budgetResponse)
 }
 
 func getPeriodBudgetById(c *gin.Context) {
