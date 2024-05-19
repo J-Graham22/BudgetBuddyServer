@@ -34,22 +34,23 @@ func main() {
 		c.Next()
 	})
 
-	router.Use(cors.New(cors.Config {
-		AllowOrigins: []string{"http://localhost:5173"},
-		AllowMethods: []string{"GET", "POST"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Accept"},
-		ExposeHeaders: []string{"Content-Length"},
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
 			return origin == "https://github.com"
 		},
 		MaxAge: 12 * time.Hour,
 	}))
-	
+
 	router.GET("/transactions", getTransactions)
 	router.POST("/transaction", addTransaction)
 	router.GET("/budgets", getPeriodBudgets)
 	router.GET("/budgets/:id", getPeriodBudgetById)
+	router.POST("/budget", addPeriodBudget)
 
 	// var version string
 	// if err := db.QueryRow("select version()").Scan(&version); err != nil {
