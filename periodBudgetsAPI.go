@@ -81,7 +81,7 @@ func addPeriodBudget(c *gin.Context) {
 		return
 	}
 
-	var newPeriodBudget period_budget
+	var newPeriodBudget PeriodBudget 
 
 	if err := c.BindJSON(&newPeriodBudget); err != nil {
 		fmt.Println(err)
