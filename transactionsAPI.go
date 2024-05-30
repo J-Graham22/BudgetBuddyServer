@@ -64,12 +64,12 @@ func addTransaction(c *gin.Context) {
 
 	// statement, err := dbConn.Prepare("insert into transactions (amount, description, transaction_time) values ($1, $2, NOW())")
 	// if err != nil { fmt.Println(err.Error()) }
-	
+
 	// result, err := statement.Exec(newTransaction.Amount, newTransaction.Description)
 
-	result, err := tx.ExecContext(c, "insert into transactions (amount, description, transaction_time) values ($1, $2, NOW()) returning id", 
+	result, err := tx.ExecContext(c, "insert into transactions (amount, description, transaction_time) values ($1, $2, NOW()) returning id",
 		newTransaction.Amount, newTransaction.Description)
-	
+
 	if err != nil {
 		panic(err)
 	}
@@ -87,7 +87,6 @@ func addTransaction(c *gin.Context) {
 
 	//fmt.Println(orderID)
 
-	
 	c.IndentedJSON(http.StatusCreated, newTransaction)
 }
 
