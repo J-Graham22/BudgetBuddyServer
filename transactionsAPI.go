@@ -11,25 +11,23 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type transaction struct {
+type Transaction struct {
 	ID              string    `json:"id"`
 	Description     string    `json:"description"`
 	Amount          float64   `json:"amount"`
 	TransactionTime time.Time `json:"transaction_time"`
+	SubcategoryID	string	`json:"subcategory_id"`
 }
 
-func getTransactions(c *gin.Context) {
-	// Retrieve the database connection from the context
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(500, gin.H{"error": "Database connection not found"})
-		return
-	}
+type TransactionResponse struct {
+	Transactions []Transaction `json:"transactions"`
+}
 
-	// Convert the interface{} type to *sql.DB
-	dbConn, ok := db.(*sql.DB)
-	if !ok {
-		c.JSON(500, gin.H{"error": "Failed to convert database connection"})
+//! Endpoints
+func getTransactions(c *gin.Context) {
+	dbConn, err := extractDBFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -38,39 +36,19 @@ func getTransactions(c *gin.Context) {
 		panic(err)
 	}
 
-	var transactions []transaction
+	var transactionsResponse = scanForTransactions(rows)
 
-	for rows.Next() {
-		var t transaction
-		if err := rows.Scan(&t.ID, &t.Description, &t.Amount, &t.TransactionTime); err != nil {
-			panic(err)
-		}
-		transactions = append(transactions, t)
-		fmt.Println(t)
-	}
-
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-
-	c.IndentedJSON(http.StatusOK, transactions)
+	c.IndentedJSON(http.StatusOK, transactionsResponse)
 }
 
 func addTransaction(c *gin.Context) {
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(500, gin.H{"error": "Database connection not found"})
+	dbConn, err := extractDBFromContext(c)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Convert the interface{} type to *sql.DB
-	dbConn, ok := db.(*sql.DB)
-	if !ok {
-		c.JSON(500, gin.H{"error": "Failed to convert database connection"})
-		return
-	}
-
-	var newTransaction transaction
+	var newTransaction Transaction 
 
 	if err := c.BindJSON(&newTransaction); err != nil {
 		fmt.Println(err)
@@ -111,4 +89,32 @@ func addTransaction(c *gin.Context) {
 
 	
 	c.IndentedJSON(http.StatusCreated, newTransaction)
+}
+
+func getTransactionsByBudget(c *gin.Context) {
+	//var budgetId string = c.Params.ByName("budget_id")
+
+
+}
+
+//! local methods
+func scanForTransactions(rows *sql.Rows) TransactionResponse {
+
+	var transactions []Transaction
+
+	if err := rows.Err(); err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var t Transaction 
+		if err := rows.Scan(&t.ID, &t.Description, &t.Amount, &t.TransactionTime); err != nil {
+			panic(err)
+		}
+		transactions = append(transactions, t)
+	}
+
+	var transactionsResponse TransactionResponse = TransactionResponse{Transactions: transactions}
+
+	return transactionsResponse
 }

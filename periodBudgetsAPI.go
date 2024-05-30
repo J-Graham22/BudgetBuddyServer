@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type period_budget struct {
+type PeriodBudget struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	StartDate time.Time `json:"start_date"`
@@ -19,21 +18,13 @@ type period_budget struct {
 }
 
 type BudgetResponse struct {
-	Budgets []period_budget `json:"budgets"`
+	Budgets []PeriodBudget `json:"budgets"`
 }
 
 func getPeriodBudgets(c *gin.Context) {
-	// Retrieve the database connection from the context
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(500, gin.H{"error": "Database connection not found"})
-		return
-	}
-
-	// Convert the interface{} type to *sql.DB
-	dbConn, ok := db.(*sql.DB)
-	if !ok {
-		c.JSON(500, gin.H{"error": "Failed to convert database connection"})
+	dbConn, err := extractDBFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -42,40 +33,16 @@ func getPeriodBudgets(c *gin.Context) {
 		panic(err)
 	}
 
-	var period_budgets []period_budget
-
-	for rows.Next() {
-		var pb period_budget
-		if err := rows.Scan(&pb.ID, &pb.Name, &pb.StartDate, &pb.EndDate); err != nil {
-			panic(err)
-		}
-		period_budgets = append(period_budgets, pb)
-		fmt.Println(pb)
-	}
-
-	if err = rows.Err(); err != nil {
-		panic(err)
-	}
-
-	var budgetResponse BudgetResponse = BudgetResponse{ Budgets: period_budgets }
-
+	var budgetResponse BudgetResponse = scanForPeriodBudgets(rows)
 	c.IndentedJSON(http.StatusOK, budgetResponse)
 }
 
 func getPeriodBudgetById(c *gin.Context) {
 	id := c.Param("id")
 
-	// Retrieve the database connection from the context
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(500, gin.H{"error": "Database connection not found"})
-		return
-	}
-
-	// Convert the interface{} type to *sql.DB
-	dbConn, ok := db.(*sql.DB)
-	if !ok {
-		c.JSON(500, gin.H{"error": "Failed to convert database connection"})
+	dbConn, err := extractDBFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -84,7 +51,10 @@ func getPeriodBudgetById(c *gin.Context) {
 		panic(err)
 	}
 
-	var pb period_budget
+	var budgetResponse BudgetResponse = scanForPeriodBudgets(rows)
+	c.IndentedJSON(http.StatusOK, budgetResponse)
+
+	var pb PeriodBudget 
 
 	for rows.Next() {
 		if err := rows.Scan(&pb.ID, &pb.StartDate, &pb.EndDate); err != nil {
@@ -94,4 +64,26 @@ func getPeriodBudgetById(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, pb)
+}
+
+//!local methods
+func scanForPeriodBudgets(rows *sql.Rows) BudgetResponse {
+
+	var periodBudgets []PeriodBudget
+
+	if err := rows.Err(); err != nil {
+		panic(err)
+	}
+
+	for rows.Next() {
+		var pb PeriodBudget 
+		if err := rows.Scan(&pb.ID, &pb.Name, &pb.StartDate, &pb.EndDate); err != nil {
+			panic(err)
+		}
+		periodBudgets = append(periodBudgets, pb)
+	}
+
+	var budgetResponse BudgetResponse = BudgetResponse{Budgets: periodBudgets}
+
+	return budgetResponse 
 }
