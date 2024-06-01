@@ -9,6 +9,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+
+	"github.com/J-Graham22/BudgetBuddyServer/src/controllers"
 )
 
 type App struct {
@@ -46,18 +48,11 @@ func main() {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	router.GET("/transactions", getTransactions)
-	router.POST("/transaction", addTransaction)
-	router.GET("/budgets", getPeriodBudgets)
-	router.GET("/budgets/:id", getPeriodBudgetById)
-	router.POST("/budget", addPeriodBudget)
-
-	// var version string
-	// if err := db.QueryRow("select version()").Scan(&version); err != nil {
-	// 	panic(err)
-	// }
-
-	// fmt.Printf("version=%s\n", version)
+	router.GET("/transactions", controllers.GetTransactions)
+	router.POST("/transaction", controllers.AddTransaction)
+	router.GET("/budgets", controllers.GetPeriodBudgets)
+	router.GET("/budgets/:id", controllers.GetPeriodBudgetById)
+	router.POST("/budget", controllers.AddPeriodBudget)
 
 	router.Run("localhost:8080")
 }
