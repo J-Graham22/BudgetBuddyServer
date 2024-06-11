@@ -23,7 +23,7 @@ func GetPeriodBudgets(c *gin.Context) {
 		return
 	}
 
-	rows, err := dbConn.Query("select * from period_budget")
+	rows, err := dbConn.Query("select * from period_budgets")
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +41,7 @@ func GetPeriodBudgetById(c *gin.Context) {
 		return
 	}
 
-	rows, err := dbConn.Query("select * from period_budget where id = $1", id)
+	rows, err := dbConn.Query("select * from period_budgets where id = $1", id)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +49,7 @@ func GetPeriodBudgetById(c *gin.Context) {
 	var budgetResponse BudgetResponse = scanForPeriodBudgets(rows)
 	c.IndentedJSON(http.StatusOK, budgetResponse)
 
-	var pb db.PeriodBudget 
+	var pb db.PeriodBudget
 
 	for rows.Next() {
 		if err := rows.Scan(&pb.ID, &pb.StartDate, &pb.EndDate); err != nil {
@@ -82,7 +82,7 @@ func AddPeriodBudget(c *gin.Context) {
 
 	defer tx.Rollback()
 
-	result, err := tx.ExecContext(c, "insert into period_budget (name, start_date, end_date) values ($1, $2, $3) returning id",
+	result, err := tx.ExecContext(c, "insert into period_budgets (name, start_date, end_date) values ($1, $2, $3) returning id",
 		pb.Name, pb.StartDate, pb.EndDate)
 
 	if err != nil {
@@ -98,7 +98,7 @@ func AddPeriodBudget(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, pb)
 }
 
-//!local methods
+// !local methods
 func scanForPeriodBudgets(rows *sql.Rows) BudgetResponse {
 
 	var periodBudgets []db.PeriodBudget
@@ -108,7 +108,7 @@ func scanForPeriodBudgets(rows *sql.Rows) BudgetResponse {
 	}
 
 	for rows.Next() {
-		var pb db.PeriodBudget 
+		var pb db.PeriodBudget
 		if err := rows.Scan(&pb.ID, &pb.Name, &pb.StartDate, &pb.EndDate); err != nil {
 			panic(err)
 		}
@@ -117,5 +117,5 @@ func scanForPeriodBudgets(rows *sql.Rows) BudgetResponse {
 
 	var budgetResponse BudgetResponse = BudgetResponse{Budgets: periodBudgets}
 
-	return budgetResponse 
+	return budgetResponse
 }

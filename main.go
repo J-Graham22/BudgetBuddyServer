@@ -6,6 +6,9 @@ import (
 
 	"database/sql"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -19,9 +22,20 @@ type App struct {
 
 func main() {
 	fmt.Println("Hello World!")
-
-	connStr := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require"
-	db, err := sql.Open("postgres", connStr)
+	/*
+		connStr := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require"
+		db, err := sql.Open("postgres", connStr)
+		if err != nil {
+			panic(err)
+		}
+		defer db.Close()
+	*/
+	dsn := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require"
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+	db, err := gormDB.DB()
 	if err != nil {
 		panic(err)
 	}

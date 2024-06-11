@@ -12,12 +12,11 @@ import (
 	"github.com/J-Graham22/BudgetBuddyServer/src/db"
 )
 
-
 type TransactionResponse struct {
 	Transactions []db.Transaction `json:"transactions"`
 }
 
-//! Endpoints
+// ! Endpoints
 func GetTransactions(c *gin.Context) {
 	dbConn, err := db.ExtractDBFromContext(c)
 	if err != nil {
@@ -42,7 +41,7 @@ func AddTransaction(c *gin.Context) {
 		return
 	}
 
-	var newTransaction db.Transaction 
+	var newTransaction db.Transaction
 
 	if err := c.BindJSON(&newTransaction); err != nil {
 		fmt.Println(err)
@@ -56,11 +55,6 @@ func AddTransaction(c *gin.Context) {
 
 	defer tx.Rollback()
 
-	// statement, err := dbConn.Prepare("insert into transactions (amount, description, transaction_time) values ($1, $2, NOW())")
-	// if err != nil { fmt.Println(err.Error()) }
-
-	// result, err := statement.Exec(newTransaction.Amount, newTransaction.Description)
-
 	result, err := tx.ExecContext(c, "insert into transactions (amount, description, transaction_time) values ($1, $2, NOW()) returning id",
 		newTransaction.Amount, newTransaction.Description)
 
@@ -70,16 +64,9 @@ func AddTransaction(c *gin.Context) {
 
 	fmt.Println(result)
 
-	// orderID, err := result.LastInsertId()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	if err = tx.Commit(); err != nil {
 		panic(err)
 	}
-
-	//fmt.Println(orderID)
 
 	c.IndentedJSON(http.StatusCreated, newTransaction)
 }
@@ -87,10 +74,9 @@ func AddTransaction(c *gin.Context) {
 func GetTransactionsByBudget(c *gin.Context) {
 	//var budgetId string = c.Params.ByName("budget_id")
 
-
 }
 
-//! local methods
+// ! local methods
 func scanForTransactions(rows *sql.Rows) TransactionResponse {
 
 	var transactions []db.Transaction
@@ -100,7 +86,7 @@ func scanForTransactions(rows *sql.Rows) TransactionResponse {
 	}
 
 	for rows.Next() {
-		var t db.Transaction 
+		var t db.Transaction
 		if err := rows.Scan(&t.ID, &t.Description, &t.Amount, &t.TransactionTime); err != nil {
 			panic(err)
 		}
