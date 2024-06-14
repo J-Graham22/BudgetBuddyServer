@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"database/sql"
-
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 
@@ -23,13 +21,25 @@ func GetPeriodBudgets(c *gin.Context) {
 		return
 	}
 
-	rows, err := dbConn.Query("select * from period_budgets")
+	var periodBudgets []db.PeriodBudget
+	result := dbConn.Find(&periodBudgets)
+
+	if(result.Error != nil) {
+		fmt.Println(result.Error)
+		return
+	}
+
+	var budgetResponse BudgetResponse = BudgetResponse{Budgets: periodBudgets}
+
+	c.IndentedJSON(http.StatusOK, budgetResponse)
+
+	/*rows, err := dbConn.Query("select * from period_budgets")
 	if err != nil {
 		panic(err)
 	}
 
 	var budgetResponse BudgetResponse = scanForPeriodBudgets(rows)
-	c.IndentedJSON(http.StatusOK, budgetResponse)
+	c.IndentedJSON(http.StatusOK, budgetResponse)*/
 }
 
 func GetPeriodBudgetById(c *gin.Context) {
@@ -41,7 +51,19 @@ func GetPeriodBudgetById(c *gin.Context) {
 		return
 	}
 
-	rows, err := dbConn.Query("select * from period_budgets where id = $1", id)
+	var periodBudget db.PeriodBudget
+
+	result := dbConn.First(&periodBudget, id)
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		return
+	}
+
+	var budgetResponse BudgetResponse = BudgetResponse{Budgets: []db.PeriodBudget{periodBudget}}
+
+	c.IndentedJSON(http.StatusOK, budgetResponse)
+
+	/*rows, err := dbConn.Query("select * from period_budgets where id = $1", id)
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +80,7 @@ func GetPeriodBudgetById(c *gin.Context) {
 		}
 	}
 
-	c.IndentedJSON(http.StatusOK, pb)
+	c.IndentedJSON(http.StatusOK, pb)*/
 }
 
 func AddPeriodBudget(c *gin.Context) {
@@ -75,7 +97,14 @@ func AddPeriodBudget(c *gin.Context) {
 		return
 	}
 
-	tx, err := dbConn.BeginTx(c, nil)
+	result := dbConn.Create(&pb)
+
+	if (result.Error != nil) {
+		fmt.Println(result.Error)
+		return
+	}	
+
+	/*tx, err := dbConn.BeginTx(c, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -93,29 +122,7 @@ func AddPeriodBudget(c *gin.Context) {
 
 	if err = tx.Commit(); err != nil {
 		panic(err)
-	}
+	}*/
 
 	c.IndentedJSON(http.StatusCreated, pb)
-}
-
-// !local methods
-func scanForPeriodBudgets(rows *sql.Rows) BudgetResponse {
-
-	var periodBudgets []db.PeriodBudget
-
-	if err := rows.Err(); err != nil {
-		panic(err)
-	}
-
-	for rows.Next() {
-		var pb db.PeriodBudget
-		if err := rows.Scan(&pb.ID, &pb.Name, &pb.StartDate, &pb.EndDate); err != nil {
-			panic(err)
-		}
-		periodBudgets = append(periodBudgets, pb)
-	}
-
-	var budgetResponse BudgetResponse = BudgetResponse{Budgets: periodBudgets}
-
-	return budgetResponse
 }

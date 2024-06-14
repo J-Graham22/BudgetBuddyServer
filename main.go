@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"database/sql"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -14,10 +12,11 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/J-Graham22/BudgetBuddyServer/src/controllers"
+	"github.com/J-Graham22/BudgetBuddyServer/src/db"
 )
 
 type App struct {
-	DB *sql.DB
+	DB *gorm.DB
 }
 
 func main() {
@@ -35,15 +34,20 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	db, err := gormDB.DB()
+	sqlDB, err := gormDB.DB()
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer sqlDB.Close()
+
+	gormDB.AutoMigrate(&db.Transaction{})
+	gormDB.AutoMigrate(&db.PeriodBudget{})
+	gormDB.AutoMigrate(&db.Household{})
+	gormDB.AutoMigrate(&db.User{})
 
 	router := gin.Default()
 
-	app := &App{DB: db}
+	app := &App{DB: gormDB}
 
 	router.Use(func(c *gin.Context) {
 		c.Set("db", app.DB)
