@@ -29,7 +29,8 @@ func main() {
 		}
 		defer db.Close()
 	*/
-	dsn := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require"
+	//dsn := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require" //neon.tech db
+	dsn := "host=localhost user=postgres password=localpass dbname=postgres port=5432" //local psql db
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
@@ -71,6 +72,7 @@ func main() {
 	router.GET("/budgets", controllers.GetPeriodBudgets)
 	router.GET("/budgets/:id", controllers.GetPeriodBudgetById)
 	router.POST("/budget", controllers.AddPeriodBudget)
+	router.GET("/households", controllers.GetHouseholds)
 
 	router.Run("localhost:8080")
 }
