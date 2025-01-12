@@ -1,78 +1,71 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
-	"time"
+	"log"
+	"net/http"
+	"os"
+	_ "time"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	_ "github.com/gin-contrib/cors"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
 	"github.com/J-Graham22/BudgetBuddyServer/src/controllers"
-	"github.com/J-Graham22/BudgetBuddyServer/src/db"
+	_ "github.com/J-Graham22/BudgetBuddyServer/src/db"
+	"github.com/J-Graham22/BudgetBuddyServer/src/db/repository"
 )
 
-type App struct {
-	DB *gorm.DB
-}
-
 func main() {
-	fmt.Println("Hello World!")
-	/*
-		connStr := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require"
-		db, err := sql.Open("postgres", connStr)
-		if err != nil {
-			panic(err)
-		}
-		defer db.Close()
-	*/
-	//dsn := "postgresql://budget-db_owner:gI4jtl8CDbhB@ep-green-dream-a485fkmn.us-east-1.aws.neon.tech/budget-db?sslmode=require" //neon.tech db
-	dsn := "host=localhost user=postgres password=localpass dbname=postgres port=5432" //local psql db
-	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic(err)
-	}
-	sqlDB, err := gormDB.DB()
-	if err != nil {
-		panic(err)
-	}
-	defer sqlDB.Close()
+  ctx := context.Background()
 
-	gormDB.AutoMigrate(&db.Transaction{})
-	gormDB.AutoMigrate(&db.PeriodBudget{})
-	gormDB.AutoMigrate(&db.Household{})
-	gormDB.AutoMigrate(&db.User{})
+	log.Println("Hello World!")
 
-	router := gin.Default()
+  var dbConn *sql.DB
+  var err error
 
-	app := &App{DB: gormDB}
+  dsn := fmt.Sprintf("%s:%s@tcp(localhost:3306)/local_kkb_db?parseTime=true", os.Getenv("DBUSER"), os.Getenv("DBPASS"))
 
-	router.Use(func(c *gin.Context) {
-		c.Set("db", app.DB)
-		c.Next()
-	})
+  dbConn, err = sql.Open("mysql", dsn)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer dbConn.Close()
 
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "POST"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		AllowOriginFunc: func(origin string) bool {
-			return origin == "https://github.com"
-		},
-		MaxAge: 12 * time.Hour,
-	}))
+  pingErr := dbConn.Ping()
+  if pingErr != nil {
+    log.Fatal(pingErr)
+  }
 
-	router.GET("/transactions", controllers.GetTransactions)
-	router.POST("/transaction", controllers.AddTransaction)
-	router.GET("/budgets", controllers.GetPeriodBudgets)
-	router.GET("/budgets/:id", controllers.GetPeriodBudgetById)
-	router.POST("/budget", controllers.AddPeriodBudget)
-	router.GET("/households", controllers.GetHouseholds)
+  log.Println("Connected")
 
-	router.Run("localhost:8080")
+
+  repo := repository.New(dbConn)
+  transactions, err := repo.GetAllTransactions(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  log.Printf("length of transactions = %d", len(transactions))
+  if len(transactions) > 0 {
+    log.Println("YAHOO!")
+  }
+
+  router := http.NewServeMux()
+  /*router.HandleFunc("POST /item{id}", func(w http.ResponseWriter, r *http.Request) {
+    id := r.PathValue("id")
+    w.Write([]byte("received request for item: " + id))
+  })*/
+
+  router.HandleFunc("GET /transactions", controllers.GetAllTransactions)
+
+  server := http.Server{
+    Addr: ":8080",
+    Handler: router,
+  }
+
+  log.Println("Starting server on port :8080")
+  server.ListenAndServe()
 }

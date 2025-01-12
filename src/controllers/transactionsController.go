@@ -1,131 +1,81 @@
 package controllers
 
 import (
-	"fmt"
+	"log"
 	"net/http"
+  "context"
+  "fmt"
+  "database/sql"
+  "os"
 
-	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
-
-	"github.com/J-Graham22/BudgetBuddyServer/src/db"
+	_ "github.com/J-Graham22/BudgetBuddyServer/src/db"
+	"github.com/J-Graham22/BudgetBuddyServer/src/db/repository"
 )
 
-type TransactionResponse struct {
-	Transactions []db.Transaction `json:"transactions"`
+func PrepareContext() (context.Context, *sql.DB, error) {
+  ctx := context.Background()
+
+  var dbConn *sql.DB
+  var err error
+
+  dsn := fmt.Sprintf("%s:%s@tcp(localhost:3306)/local_kkb_db?parseTime=true", os.Getenv("DBUSER"), os.Getenv("DBPASS"))
+
+  dbConn, err = sql.Open("mysql", dsn)
+  if err != nil {
+    log.Fatal(err)
+    return nil, nil, err
+  }
+
+  pingErr := dbConn.Ping()
+  if pingErr != nil {
+    log.Fatal(pingErr)
+    return nil, nil, err
+  }
+
+  log.Println("Connected")
+  
+  return ctx, dbConn, nil 
 }
 
-func GetTransactions(c *gin.Context) {
-	dbConn, err := db.ExtractDBFromContext(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+func GetAllTransactions(w http.ResponseWriter, r *http.Request) {
+  log.Println("executing GetAllTransactions")
 
-	var transactions []db.Transaction
-	result := dbConn.Find(&transactions)
+  ctx := context.Background()
+  ctx, dbConn, err := PrepareContext()
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer dbConn.Close()
 
-	if result.Error != nil {
-		fmt.Println(result.Error)
-		return
-	}
+  repo := repository.New(dbConn)
+  transactions, err := repo.GetAllTransactions(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
 
-	var transactionsResponse TransactionResponse = TransactionResponse{Transactions: transactions}
-
-	c.IndentedJSON(http.StatusOK, transactionsResponse)
+  log.Printf("length of transactions = %d", len(transactions))
+  if len(transactions) > 0 {
+    log.Println("YAHOO!")
+  }
 }
 
-func AddTransaction(c *gin.Context) {
-	dbConn, err := db.ExtractDBFromContext(c)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	fmt.Println("wowowowo")
-
-	var newTransaction db.TransactionType
-
-	if err := c.BindJSON(&newTransaction); err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println(newTransaction)
-
-	//newTransaction.TransactionTime = newTransaction.TransactionTime.Format("2006-01-02 15:04:05")
-
-	var newTransactionRecord db.Transaction = db.Transaction{Transaction: newTransaction}
-
-	result := dbConn.Create(&newTransactionRecord)
-
-	if result.Error != nil {
-		fmt.Println(result.Error)
-		return
-	}
-
-	c.IndentedJSON(http.StatusCreated, newTransactionRecord)
+func AddTransaction() {
 }
 
-func UpdateTransaction(c *gin.Context) {
-	var transactionId string = c.Params.ByName("transaction_id")
-	dbConn, err := db.ExtractDBFromContext(c)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	var updatingTransaction db.TransactionType
-	var updatingTransactionRecord db.Transaction
-
-	if err := c.BindJSON(&updatingTransaction); err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	if result := dbConn.First(&updatingTransactionRecord, transactionId); result.Error != nil {
-		fmt.Println(result.Error)
-		return
-	}
-
-	updatingTransactionRecord.Transaction = updatingTransaction
-
-	if result := dbConn.Save(&updatingTransaction); result.Error != nil {
-		fmt.Println(result.Error)
-		return
-	}
-
-	c.IndentedJSON(http.StatusOK, updatingTransactionRecord)
+func UpdateTransaction() {
 }
 
-func GetTransactionsByBudget(c *gin.Context) {
-	var budgetId string = c.Params.ByName("budget_id")
+func GetTransactionsByBudget() {
+}
 
-	dbConn, err := db.ExtractDBFromContext(c)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+func GetTransactionsForHousehold() {
 
-	var pb db.PeriodBudget
-	result := dbConn.First(&pb, budgetId)
+}
 
-	if result.Error != nil {
-		fmt.Println(result.Error)
-		return	
-	}
+func GetTransactionsByCategory() {
 
-	var transactionsForBudget []db.Transaction
+}
 
-	result = dbConn.
-        Table("transactions").
-        Joins("JOIN period_budgets ON transactions.date BETWEEN period_budgets.start_date AND period_budgets.end_date").
-        Where("period_budgets.id = ?", budgetId).
-        Find(&transactionsForBudget)
+func GetTransactionsByUser() {
 
-	if result.Error != nil {
-		fmt.Println(result.Error)
-		return
-	}
-
-	c.IndentedJSON(http.StatusOK, transactionsForBudget)
 }
