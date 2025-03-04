@@ -10,11 +10,11 @@ import (
 )
 
 const getAllTransactions = `-- name: GetAllTransactions :many
-select id, created_by_user_id, updated_by_user_id, transaction_date, name, amount, description, category, transaction_type, account_id, created_at, updated_at from Transactions
+select id, created_by_user_id, updated_by_user_id, transaction_date, name, amount, description, category, household_id, is_income, account_id, created_at, updated_at from Transactions
 `
 
 func (q *Queries) GetAllTransactions(ctx context.Context) ([]Transaction, error) {
-	rows, err := q.db.QueryContext(ctx, getAllTransactions)
+	rows, err := q.db.Query(ctx, getAllTransactions)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,8 @@ func (q *Queries) GetAllTransactions(ctx context.Context) ([]Transaction, error)
 			&i.Amount,
 			&i.Description,
 			&i.Category,
-			&i.TransactionType,
+			&i.HouseholdID,
+			&i.IsIncome,
 			&i.AccountID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -40,8 +41,44 @@ func (q *Queries) GetAllTransactions(ctx context.Context) ([]Transaction, error)
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	return items, nil
+}
+
+const getTransactionsByHousehold = `-- name: GetTransactionsByHousehold :many
+select id, created_by_user_id, updated_by_user_id, transaction_date, name, amount, description, category, household_id, is_income, account_id, created_at, updated_at from Transactions
+where household_id = $1
+`
+
+func (q *Queries) GetTransactionsByHousehold(ctx context.Context, householdID int32) ([]Transaction, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByHousehold, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedByUserID,
+			&i.UpdatedByUserID,
+			&i.TransactionDate,
+			&i.Name,
+			&i.Amount,
+			&i.Description,
+			&i.Category,
+			&i.HouseholdID,
+			&i.IsIncome,
+			&i.AccountID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

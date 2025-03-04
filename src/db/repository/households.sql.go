@@ -9,12 +9,24 @@ import (
 	"context"
 )
 
+const addHousehold = `-- name: AddHousehold :one
+insert into Households (name)
+values ($1) returning id, name
+`
+
+func (q *Queries) AddHousehold(ctx context.Context, name string) (Household, error) {
+	row := q.db.QueryRow(ctx, addHousehold, name)
+	var i Household
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
 const getAllHouseholds = `-- name: GetAllHouseholds :many
 select id, name from Households
 `
 
 func (q *Queries) GetAllHouseholds(ctx context.Context) ([]Household, error) {
-	rows, err := q.db.QueryContext(ctx, getAllHouseholds)
+	rows, err := q.db.Query(ctx, getAllHouseholds)
 	if err != nil {
 		return nil, err
 	}
@@ -26,9 +38,6 @@ func (q *Queries) GetAllHouseholds(ctx context.Context) ([]Household, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

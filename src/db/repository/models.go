@@ -5,73 +5,30 @@
 package repository
 
 import (
-	"database/sql"
-	"database/sql/driver"
-	"fmt"
-	"time"
+	"github.com/jackc/pgx/v5/pgtype"
 )
-
-type TransactionsTransactionType string
-
-const (
-	TransactionsTransactionTypeIncome  TransactionsTransactionType = "income"
-	TransactionsTransactionTypeExpense TransactionsTransactionType = "expense"
-)
-
-func (e *TransactionsTransactionType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = TransactionsTransactionType(s)
-	case string:
-		*e = TransactionsTransactionType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for TransactionsTransactionType: %T", src)
-	}
-	return nil
-}
-
-type NullTransactionsTransactionType struct {
-	TransactionsTransactionType TransactionsTransactionType `json:"transactions_transaction_type"`
-	Valid                       bool                        `json:"valid"` // Valid is true if TransactionsTransactionType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullTransactionsTransactionType) Scan(value interface{}) error {
-	if value == nil {
-		ns.TransactionsTransactionType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.TransactionsTransactionType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullTransactionsTransactionType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.TransactionsTransactionType), nil
-}
 
 type Account struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID           int32       `json:"id"`
+	Name         string      `json:"name"`
+	AccountOwner pgtype.Int4 `json:"account_owner"`
+	HouseholdID  pgtype.Int4 `json:"household_id"`
 }
 
 type Budget struct {
-	ID          int32     `json:"id"`
-	Name        string    `json:"name"`
-	StartDate   time.Time `json:"start_date"`
-	EndDate     time.Time `json:"end_date"`
-	HouseholdID int32     `json:"household_id"`
+	ID          int32       `json:"id"`
+	Name        string      `json:"name"`
+	StartDate   pgtype.Date `json:"start_date"`
+	EndDate     pgtype.Date `json:"end_date"`
+	HouseholdID int32       `json:"household_id"`
 }
 
 type Category struct {
-	ID               int32          `json:"id"`
-	Name             string         `json:"name"`
-	Description      sql.NullString `json:"description"`
-	HouseholdID      int32          `json:"household_id"`
-	ParentCategoryID sql.NullInt32  `json:"parent_category_id"`
+	ID               int32       `json:"id"`
+	Name             string      `json:"name"`
+	Description      pgtype.Text `json:"description"`
+	HouseholdID      int32       `json:"household_id"`
+	ParentCategoryID pgtype.Int4 `json:"parent_category_id"`
 }
 
 type Household struct {
@@ -80,18 +37,19 @@ type Household struct {
 }
 
 type Transaction struct {
-	ID              int32                       `json:"id"`
-	CreatedByUserID int32                       `json:"created_by_user_id"`
-	UpdatedByUserID int32                       `json:"updated_by_user_id"`
-	TransactionDate time.Time                   `json:"transaction_date"`
-	Name            string                      `json:"name"`
-	Amount          string                      `json:"amount"`
-	Description     sql.NullString              `json:"description"`
-	Category        sql.NullInt32               `json:"category"`
-	TransactionType TransactionsTransactionType `json:"transaction_type"`
-	AccountID       int32                       `json:"account_id"`
-	CreatedAt       sql.NullTime                `json:"created_at"`
-	UpdatedAt       sql.NullTime                `json:"updated_at"`
+	ID              int32            `json:"id"`
+	CreatedByUserID int32            `json:"created_by_user_id"`
+	UpdatedByUserID int32            `json:"updated_by_user_id"`
+	TransactionDate pgtype.Date      `json:"transaction_date"`
+	Name            string           `json:"name"`
+	Amount          pgtype.Numeric   `json:"amount"`
+	Description     pgtype.Text      `json:"description"`
+	Category        pgtype.Int4      `json:"category"`
+	HouseholdID     int32            `json:"household_id"`
+	IsIncome        bool             `json:"is_income"`
+	AccountID       int32            `json:"account_id"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
 }
 
 type User struct {
@@ -99,6 +57,7 @@ type User struct {
 	Username string `json:"username"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
+	Password []byte `json:"password"`
 }
 
 type Userhouseholdmapping struct {

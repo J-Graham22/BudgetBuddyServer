@@ -1,2 +1,2 @@
 -- name: GetAllAccounts :many
-select * from Accounts 
+select * from Accounts;

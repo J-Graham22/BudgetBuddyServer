@@ -10,11 +10,11 @@ import (
 )
 
 const getAllAccounts = `-- name: GetAllAccounts :many
-select id, name from Accounts
+select id, name, account_owner, household_id from Accounts
 `
 
 func (q *Queries) GetAllAccounts(ctx context.Context) ([]Account, error) {
-	rows, err := q.db.QueryContext(ctx, getAllAccounts)
+	rows, err := q.db.Query(ctx, getAllAccounts)
 	if err != nil {
 		return nil, err
 	}
@@ -22,13 +22,15 @@ func (q *Queries) GetAllAccounts(ctx context.Context) ([]Account, error) {
 	var items []Account
 	for rows.Next() {
 		var i Account
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.AccountOwner,
+			&i.HouseholdID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

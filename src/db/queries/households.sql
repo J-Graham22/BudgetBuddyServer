@@ -1,6 +1,6 @@
 -- name: GetAllHouseholds :many
-select * from Households 
+select * from Households;
 
--- name: AddHousehold :exec
-insert into Households(name)
-values ($1);
+-- name: AddHousehold :one
+insert into Households (name)
+values (sqlc.arg(name)) returning *;

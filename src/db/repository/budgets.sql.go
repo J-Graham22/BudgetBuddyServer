@@ -7,14 +7,38 @@ package repository
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const addBudget = `-- name: AddBudget :exec
+insert into Budgets(name, start_date, end_date, household_id)
+values ($1, $2, $3, $4)
+`
+
+type AddBudgetParams struct {
+	Name        string      `json:"name"`
+	StartDate   pgtype.Date `json:"start_date"`
+	EndDate     pgtype.Date `json:"end_date"`
+	HouseholdID int32       `json:"household_id"`
+}
+
+func (q *Queries) AddBudget(ctx context.Context, arg AddBudgetParams) error {
+	_, err := q.db.Exec(ctx, addBudget,
+		arg.Name,
+		arg.StartDate,
+		arg.EndDate,
+		arg.HouseholdID,
+	)
+	return err
+}
 
 const getAllBudgets = `-- name: GetAllBudgets :many
 select id, name, start_date, end_date, household_id from Budgets
 `
 
 func (q *Queries) GetAllBudgets(ctx context.Context) ([]Budget, error) {
-	rows, err := q.db.QueryContext(ctx, getAllBudgets)
+	rows, err := q.db.Query(ctx, getAllBudgets)
 	if err != nil {
 		return nil, err
 	}
@@ -32,9 +56,6 @@ func (q *Queries) GetAllBudgets(ctx context.Context) ([]Budget, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
